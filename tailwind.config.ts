@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,20 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+        // Event Hub custom colors
+        eventPurple: '#8B5CF6',
+        eventPink: '#D946EF',
+        eventOrange: '#F97316',
+        eventBlue: '#0EA5E9',
+        softGreen: '#F2FCE2',
+        softYellow: '#FEF7CD',
+        softOrange: '#FEC6A1',
+        softPurple: '#E5DEFF',
+        softPink: '#FFDEE2',
+        softPeach: '#FDE1D3',
+        softBlue: '#D3E4FD',
+        softGray: '#F1F0FB',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,11 +98,48 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+        'fade-in': {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(10px)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)'
+          }
+        },
+        'scale-in': {
+          '0%': {
+            transform: 'scale(0.95)',
+            opacity: '0'
+          },
+          '100%': {
+            transform: 'scale(1)',
+            opacity: '1'
+          }
+        },
+        'slide-in-right': {
+          '0%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(0)' }
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' }
+        },
+        'pulse-light': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.8' }
+        }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+        'fade-in': 'fade-in 0.5s ease-out forwards',
+        'scale-in': 'scale-in 0.3s ease-out forwards',
+        'slide-in-right': 'slide-in-right 0.3s ease-out forwards',
+        'float': 'float 6s ease-in-out infinite',
+        'pulse-light': 'pulse-light 4s ease-in-out infinite'
 			}
 		}
 	},
