@@ -89,9 +89,6 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
             <Link to="/login" className="btn-outline py-2">
               Log in
             </Link>
-            <Link to="/signup" className="btn-primary py-2">
-              Sign up
-            </Link>
           </div>
         )}
       </div>

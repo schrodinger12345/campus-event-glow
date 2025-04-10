@@ -43,15 +43,27 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // For demo purposes, we'll use a very simple check
+      // In a real app, this would validate against a backend
       
-      // In a real app, this would be an actual authentication call
-      console.log('Login attempt with:', values);
+      // Create a minimal user object if one doesn't exist
+      const userData = {
+        id: Date.now().toString(),
+        name: "Demo User",
+        email: values.email,
+        type: userType,
+        interests: [],
+        badges: [], // Empty badges array
+        eventsAttended: [],
+        eventsOrganized: [],
+      };
+      
+      // Store the user in localStorage
+      localStorage.setItem('currentUser', JSON.stringify(userData));
       
       toast({
         title: "Login successful!",
-        description: `Welcome back to EventHub.`,
+        description: `Welcome to EventHub.`,
       });
       
       // Redirect based on user type
@@ -133,6 +145,15 @@ const Login = () => {
                 )}
               />
               
+              <div className="text-center mt-2 mb-4">
+                <p className="text-sm text-muted-foreground">
+                  Don't have an account yet?{" "}
+                  <Link to="/signup" className="text-eventPurple hover:underline">
+                    Create one
+                  </Link>
+                </p>
+              </div>
+              
               <Button 
                 type="submit" 
                 className="w-full" 
@@ -144,12 +165,6 @@ const Login = () => {
           </Form>
           
           <div className="mt-6 text-center text-sm">
-            <p className="text-muted-foreground mb-2">
-              Don't have an account?{" "}
-              <Link to="/signup" className="text-eventPurple hover:underline">
-                Sign up
-              </Link>
-            </p>
             <Link to="/forgot-password" className="text-eventPurple hover:underline">
               Forgot password?
             </Link>

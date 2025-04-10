@@ -1,20 +1,42 @@
 
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, Building, Share2, Award, Download } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { events } from '@/data/mockData';
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { User, EPass } from '@/types';
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [registering, setRegistering] = useState(false);
+  const [hasRegistered, setHasRegistered] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Find the event
   const event = events.find(e => e.id === id);
   
+  useEffect(() => {
+    // Load user from localStorage
+    const userJson = localStorage.getItem('currentUser');
+    if (userJson) {
+      const user = JSON.parse(userJson);
+      setCurrentUser(user);
+      
+      // Check if user has already registered for this event
+      const epassesJson = localStorage.getItem('epasses');
+      if (epassesJson) {
+        const epasses: EPass[] = JSON.parse(epassesJson);
+        const hasPass = epasses.some(pass => pass.eventId === id && pass.userId === user.id);
+        setHasRegistered(hasPass);
+      }
+    }
+  }, [id]);
+
   if (!event) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -30,16 +52,73 @@ const EventDetail = () => {
   }
 
   const handleRegister = () => {
+    if (!currentUser) {
+      toast({
+        title: "Login required",
+        description: "Please log in to register for this event.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
     setRegistering(true);
     
-    // Simulate API call
+    // Generate a new ePass
+    const newEPass: EPass = {
+      id: `epass-${Date.now()}`,
+      eventId: event.id,
+      eventTitle: event.title,
+      eventDate: event.date,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=EVENT:${event.id}|USER:${currentUser.id}|TIME:${Date.now()}`,
+      isUsed: false,
+      issuedAt: new Date().toISOString(),
+    };
+    
+    // Get existing ePasses or initialize empty array
+    const epassesJson = localStorage.getItem('epasses');
+    const epasses = epassesJson ? JSON.parse(epassesJson) : [];
+    
+    // Add new ePass
+    epasses.push(newEPass);
+    
+    // Save to localStorage
+    localStorage.setItem('epasses', JSON.stringify(epasses));
+    
+    // Update user's attended events
+    if (currentUser.eventsAttended) {
+      currentUser.eventsAttended.push(event.id);
+    } else {
+      currentUser.eventsAttended = [event.id];
+    }
+    
+    // Save updated user
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
     setTimeout(() => {
       setRegistering(false);
+      setHasRegistered(true);
       toast({
         title: "Successfully registered!",
-        description: "Your E-Pass has been generated and sent to your email.",
+        description: "Your E-Pass has been generated.",
       });
     }, 1500);
+  };
+
+  const handleDownloadEPass = () => {
+    if (!currentUser) {
+      toast({
+        title: "Login required",
+        description: "Please log in to access your E-Pass.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+    
+    navigate(`/epass/${id}`);
   };
 
   const getCategoryColor = (category: string) => {
@@ -58,7 +137,7 @@ const EventDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-softPurple/20">
-      <NavBar userType="student" />
+      <NavBar userType={currentUser?.type || null} />
       
       <main className="container mx-auto px-4 py-10">
         <div className="max-w-5xl mx-auto">
@@ -104,24 +183,27 @@ const EventDetail = () => {
               </div>
               
               <div className="flex flex-wrap gap-3">
-                <Button className="btn-primary" onClick={handleRegister} disabled={registering}>
-                  {registering ? (
-                    <>Processing...</>
-                  ) : (
-                    <>
-                      <Award size={16} className="mr-2" />
-                      Register for Event
-                    </>
-                  )}
-                </Button>
+                {hasRegistered ? (
+                  <Button onClick={handleDownloadEPass} className="btn-primary">
+                    <Download size={16} className="mr-2" />
+                    Download E-Pass
+                  </Button>
+                ) : (
+                  <Button className="btn-primary" onClick={handleRegister} disabled={registering}>
+                    {registering ? (
+                      <>Processing...</>
+                    ) : (
+                      <>
+                        <Award size={16} className="mr-2" />
+                        Register for Event
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button variant="outline" className="btn-outline">
                   <Share2 size={16} className="mr-2" />
                   Share
                 </Button>
-                <Link to={`/event/${event.id}/epass`} className="btn-outline">
-                  <Download size={16} className="mr-2" />
-                  Download E-Pass
-                </Link>
               </div>
             </div>
           </div>

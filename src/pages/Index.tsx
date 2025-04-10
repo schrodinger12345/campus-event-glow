@@ -150,7 +150,7 @@ const Index = () => {
               Join thousands of students and organizers who are already using EventHub to discover, create, and manage campus events.
             </p>
             <div className="flex flex-wrap justify-center gap-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <Link to="/signup">
+              <Link to="/login">
                 <Button className="bg-white text-eventPurple hover:bg-white/90 rounded-full px-8 py-6 font-medium">
                   Get Started Now
                 </Button>

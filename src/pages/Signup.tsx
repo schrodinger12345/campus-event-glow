@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ArrowLeft, Lock, Mail, User, Building } from 'lucide-react';
+import { ArrowLeft, Lock, Mail, User, Building, Tag } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -25,6 +26,7 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   confirmPassword: z.string(),
   userType: z.enum(["student", "organizer"]),
+  interests: z.string().optional(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
@@ -43,6 +45,7 @@ const Signup = () => {
       password: "",
       confirmPassword: "",
       userType: "student",
+      interests: "",
     },
   });
   
@@ -50,19 +53,28 @@ const Signup = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Store user data in localStorage for persistence
+      const userData = {
+        id: Date.now().toString(),
+        name: values.name,
+        email: values.email,
+        type: values.userType,
+        interests: values.interests ? values.interests.split(',').map(i => i.trim()) : [],
+        badges: [], // Start with empty badges
+        eventsAttended: [],
+        eventsOrganized: [],
+      };
       
-      // In a real app, this would be an actual registration call
-      console.log('Signup attempt with:', values);
+      // Save to localStorage for demo persistence
+      localStorage.setItem('currentUser', JSON.stringify(userData));
       
       toast({
         title: "Account created!",
-        description: "Welcome to EventHub. You can now log in.",
+        description: "Welcome to EventHub. You're now logged in.",
       });
       
-      // Redirect to login page
-      navigate(`/login/${values.userType}`);
+      // Redirect based on user type
+      navigate(`/${values.userType}/profile`);
     } catch (error) {
       toast({
         title: "Signup failed",
@@ -172,6 +184,27 @@ const Signup = () => {
                           placeholder="••••••••" 
                           type="password" 
                           className="pl-10" 
+                          {...field} 
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="interests"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your Interests</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Tag className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Textarea 
+                          placeholder="Technology, Design, Science, etc. (comma separated)" 
+                          className="pl-10 min-h-[80px]" 
                           {...field} 
                         />
                       </div>
