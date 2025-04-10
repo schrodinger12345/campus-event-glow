@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Calendar, Settings, User } from 'lucide-react';
 import {
   DropdownMenu,
@@ -14,15 +14,28 @@ type NavBarProps = {
 };
 
 const NavBar: React.FC<NavBarProps> = ({ userType }) => {
+  const navigate = useNavigate();
+  
+  const handleLogoClick = () => {
+    if (userType) {
+      navigate(`/${userType}/events`);
+    } else {
+      navigate('/');
+    }
+  };
+  
   return (
     <header className="w-full bg-white/70 backdrop-blur-md border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
-        <Link to="/" className="flex items-center gap-2">
+        <div 
+          onClick={handleLogoClick} 
+          className="flex items-center gap-2 cursor-pointer"
+        >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-eventPurple to-eventPink flex items-center justify-center text-white font-bold text-xl">
             EH
           </div>
           <span className="font-bold text-xl text-foreground">EventHub</span>
-        </Link>
+        </div>
 
         {userType && (
           <nav className="hidden md:flex items-center gap-8">
@@ -47,9 +60,9 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
 
         {userType ? (
           <div className="flex items-center gap-3">
-            <button className="w-9 h-9 rounded-full flex items-center justify-center text-foreground/70 hover:bg-muted transition-colors">
+            <Link to={`/${userType}/notifications`} className="w-9 h-9 rounded-full flex items-center justify-center text-foreground/70 hover:bg-muted transition-colors">
               <Bell size={20} />
-            </button>
+            </Link>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

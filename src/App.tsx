@@ -9,6 +9,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import StudentProfile from "./pages/StudentProfile";
 import OrganizerProfile from "./pages/OrganizerProfile";
+import EditableProfile from "./pages/EditableProfile";
 import EventsPage from "./pages/EventsPage";
 import EventDetail from "./pages/EventDetail";
 import NotFound from "./pages/NotFound";
@@ -16,6 +17,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import CalendarView from "./pages/CalendarView";
 import EPassPage from "./pages/EPassPage";
+import EPassesPage from "./pages/EPassesPage";
 import EventFeedback from "./pages/EventFeedback";
 import Notifications from "./pages/Notifications";
 
@@ -36,13 +38,14 @@ const App = () => (
           <Route path="/signup" element={<Signup />} />
           
           {/* Student Routes */}
-          <Route path="/student/profile" element={<StudentProfile />} />
+          <Route path="/student/profile" element={<EditableProfile />} />
           <Route path="/student/events" element={<EventsPage />} />
           <Route path="/student/calendar" element={<CalendarView />} />
           <Route path="/student/notifications" element={<Notifications />} />
+          <Route path="/student/epasses" element={<EPassesPage />} />
           
           {/* Organizer Routes */}
-          <Route path="/organizer/profile" element={<OrganizerProfile />} />
+          <Route path="/organizer/profile" element={<EditableProfile />} />
           <Route path="/organizer/events" element={<EventsPage />} />
           <Route path="/organizer/calendar" element={<CalendarView />} />
           <Route path="/organizer/notifications" element={<Notifications />} />

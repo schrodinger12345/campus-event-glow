@@ -1,7 +1,8 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Calendar, MapPin, Clock, User } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 import NavBar from '@/components/NavBar';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ const EPassPage = () => {
   const { toast } = useToast();
   const [epass, setEpass] = useState<EPass | null>(null);
   const [currentUserType, setCurrentUserType] = useState<string | null>(null);
+  const epassRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     // Get current user
@@ -57,15 +59,45 @@ const EPassPage = () => {
     }
   }, [id, navigate, toast]);
   
-  const handleDownload = () => {
-    if (!epass) return;
+  const handleDownload = async () => {
+    if (!epass || !epassRef.current) return;
     
-    // In a real app, this would generate a PDF or image
-    // For now, we'll just show a success message
-    toast({
-      title: "E-Pass downloaded",
-      description: "Your E-Pass has been downloaded successfully",
-    });
+    try {
+      // Show loading toast
+      toast({
+        title: "Generating E-Pass",
+        description: "Please wait while we prepare your E-Pass...",
+      });
+      
+      // Capture the e-pass card as an image
+      const canvas = await html2canvas(epassRef.current, {
+        backgroundColor: null,
+        scale: 2, // Higher resolution
+      });
+      
+      // Convert to data URL
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `epass-${epass.eventTitle.replace(/\s+/g, '-').toLowerCase()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "E-Pass downloaded",
+        description: "Your E-Pass has been downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: "There was an error downloading your E-Pass. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   if (!epass) {
@@ -91,7 +123,7 @@ const EPassPage = () => {
           Back to event
         </Link>
         
-        <div className="max-w-lg mx-auto glass-card overflow-hidden rounded-xl animate-fade-in">
+        <div ref={epassRef} className="max-w-lg mx-auto glass-card overflow-hidden rounded-xl animate-fade-in">
           <div className="bg-gradient-to-r from-eventPurple to-eventPink p-6 text-white">
             <h1 className="text-xl font-bold">Event E-Pass</h1>
             <p>{epass.eventTitle}</p>

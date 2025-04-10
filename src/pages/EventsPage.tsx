@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Filter, Calendar as CalendarIcon, List, Search } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import EventCard from '@/components/EventCard';
@@ -11,12 +11,14 @@ import { events } from '@/data/mockData';
 
 const EventsPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isStudent = location.pathname.includes('/student');
   const isOrganizer = location.pathname.includes('/organizer');
   const userType = isStudent ? 'student' : isOrganizer ? 'organizer' : null;
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
   
   const categories = ['All', 'Workshop', 'Conference', 'Seminar', 'Social', 'Cultural', 'Academic', 'Sports'];
   
@@ -32,6 +34,14 @@ const EventsPage = () => {
     
     return matchesSearch && matchesCategory;
   });
+
+  const handleViewChange = (value: string) => {
+    if (value === 'calendar') {
+      navigate(`/${userType}/calendar`);
+    } else {
+      setViewMode('grid');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-softPurple/20">
@@ -85,7 +95,7 @@ const EventsPage = () => {
                 ))}
               </div>
               
-              <Tabs defaultValue="grid" className="w-auto">
+              <Tabs defaultValue="grid" className="w-auto" onValueChange={handleViewChange}>
                 <TabsList className="grid grid-cols-2 h-9 w-[120px]">
                   <TabsTrigger value="grid">
                     <List size={16} />
