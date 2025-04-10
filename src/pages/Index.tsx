@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Flame, Target, Users } from 'lucide-react';
@@ -151,12 +150,16 @@ const Index = () => {
               Join thousands of students and organizers who are already using EventHub to discover, create, and manage campus events.
             </p>
             <div className="flex flex-wrap justify-center gap-4 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <Button className="bg-white text-eventPurple hover:bg-white/90 rounded-full px-8 py-6 font-medium">
-                Get Started Now
-              </Button>
-              <Button variant="outline" className="border-white text-white hover:bg-white/10 rounded-full px-8 py-6 font-medium">
-                Learn More
-              </Button>
+              <Link to="/signup">
+                <Button className="bg-white text-eventPurple hover:bg-white/90 rounded-full px-8 py-6 font-medium">
+                  Get Started Now
+                </Button>
+              </Link>
+              <Link to="/about">
+                <Button variant="outline" className="border-white text-white hover:bg-white/10 rounded-full px-8 py-6 font-medium">
+                  Learn More
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
