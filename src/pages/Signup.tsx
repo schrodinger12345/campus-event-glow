@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -38,28 +37,6 @@ const Signup = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => {
-    // Check if user is already logged in
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        // Get the user's profile type
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('type')
-          .eq('id', data.session.user.id)
-          .single();
-          
-        if (profileData) {
-          // Redirect based on user type
-          navigate(`/${profileData.type}/profile`);
-        }
-      }
-    };
-    
-    checkSession();
-  }, [navigate]);
-  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -81,43 +58,43 @@ const Signup = () => {
         ? values.interests.split(',').map(i => i.trim()) 
         : [];
       
-      // Register the user with Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
-        options: {
-          data: {
-            name: values.name,
-            type: values.userType,
-          }
-        }
-      });
+      // Create a new UUID for the user
+      const userId = crypto.randomUUID();
       
-      if (error) {
-        throw new Error(error.message);
-      }
-      
-      if (data.user) {
-        // Update the user's profile with additional information
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            interests: interestsArray
-          })
-          .eq('id', data.user.id);
-          
-        if (profileError) {
-          console.error('Error updating profile:', profileError);
-        }
-        
-        toast({
-          title: "Account created!",
-          description: "Welcome to EventHub. You're now registered.",
+      // Insert the user credentials directly into the database
+      const { error: credentialsError } = await supabase
+        .from('user_credentials')
+        .insert({
+          id: userId,
+          email: values.email,
+          password: values.password, // Note: In a real app, this should be hashed
         });
         
-        // Redirect based on user type
-        navigate(`/${values.userType}/profile`);
+      if (credentialsError) {
+        throw new Error(credentialsError.message);
       }
+      
+      // Insert the user profile information
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          name: values.name,
+          type: values.userType,
+          interests: interestsArray
+        });
+          
+      if (profileError) {
+        throw new Error('Error creating profile: ' + profileError.message);
+      }
+        
+      toast({
+        title: "Account created!",
+        description: "Welcome to EventHub. You're now registered.",
+      });
+        
+      // Redirect to login
+      navigate('/login');
     } catch (error: any) {
       toast({
         title: "Signup failed",

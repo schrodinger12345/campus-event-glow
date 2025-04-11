@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Calendar, Settings, User, LogOut } from 'lucide-react';
@@ -8,7 +7,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 type NavBarProps = {
@@ -26,24 +24,12 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
       if (!userType) return;
       
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const userSession = localStorage.getItem('user_session');
         
-        if (session) {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('name, profile_picture')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (error) {
-            console.error('Error fetching user data:', error);
-            return;
-          }
-          
-          if (data) {
-            setUserName(data.name);
-            setAvatarUrl(data.profile_picture);
-          }
+        if (userSession) {
+          const userData = JSON.parse(userSession);
+          setUserName(userData.name);
+          setAvatarUrl(null);
         }
       } catch (error) {
         console.error('Error in fetching user data:', error);
@@ -65,9 +51,7 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
   
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
+      localStorage.removeItem('user_session');
       
       toast({
         title: "Signed out",
