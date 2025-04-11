@@ -27,37 +27,39 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
+      <Sonner theme="light" className="sonner-theme-light" />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          
-          {/* Authentication Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/login/:type" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          {/* Student Routes */}
-          <Route path="/student/profile" element={<EditableProfile />} />
-          <Route path="/student/events" element={<EventsPage />} />
-          <Route path="/student/calendar" element={<CalendarView />} />
-          <Route path="/student/notifications" element={<Notifications />} />
-          <Route path="/student/epasses" element={<EPassesPage />} />
-          
-          {/* Organizer Routes */}
-          <Route path="/organizer/profile" element={<EditableProfile />} />
-          <Route path="/organizer/events" element={<EventsPage />} />
-          <Route path="/organizer/calendar" element={<CalendarView />} />
-          <Route path="/organizer/notifications" element={<Notifications />} />
-          
-          {/* Event Routes */}
-          <Route path="/event/:id" element={<EventDetail />} />
-          <Route path="/event/:id/feedback" element={<EventFeedback />} />
-          <Route path="/epass/:id" element={<EPassPage />} />
-          
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <div className="bg-background text-foreground min-h-screen">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            
+            {/* Authentication Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/login/:type" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            
+            {/* Student Routes */}
+            <Route path="/student/profile" element={<EditableProfile />} />
+            <Route path="/student/events" element={<EventsPage />} />
+            <Route path="/student/calendar" element={<CalendarView />} />
+            <Route path="/student/notifications" element={<Notifications />} />
+            <Route path="/student/epasses" element={<EPassesPage />} />
+            
+            {/* Organizer Routes */}
+            <Route path="/organizer/profile" element={<EditableProfile />} />
+            <Route path="/organizer/events" element={<EventsPage />} />
+            <Route path="/organizer/calendar" element={<CalendarView />} />
+            <Route path="/organizer/notifications" element={<Notifications />} />
+            
+            {/* Event Routes */}
+            <Route path="/event/:id" element={<EventDetail />} />
+            <Route path="/event/:id/feedback" element={<EventFeedback />} />
+            <Route path="/epass/:id" element={<EPassPage />} />
+            
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

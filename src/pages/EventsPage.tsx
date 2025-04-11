@@ -44,7 +44,7 @@ const EventsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-softPurple/20">
+    <div className="min-h-screen bg-gradient-to-br from-white to-eventPale">
       <NavBar userType={userType} />
       
       <main className="container mx-auto px-4 py-10">
@@ -52,7 +52,7 @@ const EventsPage = () => {
           {/* Page Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 animate-fade-in">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Upcoming Events</h1>
+              <h1 className="text-3xl font-bold text-eventNavy mb-2">Upcoming Events</h1>
               <p className="text-muted-foreground">
                 Discover and register for events happening around campus
               </p>
@@ -65,7 +65,7 @@ const EventsPage = () => {
                 placeholder="Search events..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full md:w-80 rounded-full border border-border"
+                className="pl-10 pr-4 py-2 w-full md:w-80 rounded-full border border-border focus-within:border-eventBlue focus-within:ring focus-within:ring-eventBlue/20 transition-all duration-300"
               />
             </div>
           </div>
@@ -82,13 +82,22 @@ const EventsPage = () => {
                   <Filter size={16} className="mr-2" />
                   Filters
                 </Button>
-                {categories.map(category => (
+                {categories.map((category, index) => (
                   <Button
                     key={category}
                     variant={selectedCategory === category || (category === 'All' && !selectedCategory) ? "default" : "outline"}
                     size="sm"
-                    className="rounded-full"
+                    className={`rounded-full transition-all duration-300 ${
+                      selectedCategory === category || (category === 'All' && !selectedCategory) 
+                        ? 'bg-eventNavy hover:bg-eventBlue' 
+                        : 'hover:border-eventBlue hover:text-eventBlue'
+                    }`}
                     onClick={() => setSelectedCategory(category === 'All' ? null : category)}
+                    style={{ 
+                      animationDelay: `${0.1 + (index * 0.05)}s`,
+                      opacity: 0,
+                      animation: 'fade-in 0.5s ease-out forwards' 
+                    }}
                   >
                     {category}
                   </Button>
@@ -96,11 +105,11 @@ const EventsPage = () => {
               </div>
               
               <Tabs defaultValue="grid" className="w-auto" onValueChange={handleViewChange}>
-                <TabsList className="grid grid-cols-2 h-9 w-[120px]">
-                  <TabsTrigger value="grid">
+                <TabsList className="grid grid-cols-2 h-9 w-[120px] bg-secondary/80">
+                  <TabsTrigger value="grid" className="data-[state=active]:bg-eventNavy data-[state=active]:text-white">
                     <List size={16} />
                   </TabsTrigger>
-                  <TabsTrigger value="calendar">
+                  <TabsTrigger value="calendar" className="data-[state=active]:bg-eventNavy data-[state=active]:text-white">
                     <CalendarIcon size={16} />
                   </TabsTrigger>
                 </TabsList>
@@ -133,7 +142,7 @@ const EventsPage = () => {
             
             {filteredEvents.length === 0 && (
               <div className="col-span-full glass-card p-10 text-center">
-                <h3 className="text-lg font-medium mb-2">No events found</h3>
+                <h3 className="text-lg font-medium mb-2 text-eventNavy">No events found</h3>
                 <p className="text-muted-foreground">
                   Try changing your search terms or filters
                 </p>

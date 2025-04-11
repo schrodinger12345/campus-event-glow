@@ -17,41 +17,46 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
   const navigate = useNavigate();
   
   const handleLogoClick = () => {
-    if (userType) {
-      navigate(`/${userType}/events`);
+    if (userType === 'student') {
+      navigate('/student/events');
+    } else if (userType === 'organizer') {
+      navigate('/organizer/events');
     } else {
       navigate('/');
     }
   };
   
   return (
-    <header className="w-full bg-white/70 backdrop-blur-md border-b border-border sticky top-0 z-50">
+    <header className="w-full bg-white/70 backdrop-blur-md border-b border-border sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
         <div 
           onClick={handleLogoClick} 
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer group"
         >
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-eventPurple to-eventPink flex items-center justify-center text-white font-bold text-xl">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-eventNavy to-eventBlue flex items-center justify-center text-white font-bold text-xl shadow-md transition-all duration-300 group-hover:shadow-lg group-hover:scale-105">
             EH
           </div>
-          <span className="font-bold text-xl text-foreground">EventHub</span>
+          <div className="flex flex-col items-start">
+            <span className="font-bold text-xl text-eventNavy transition-colors duration-300 group-hover:text-eventBlue">EventHub</span>
+            <span className="text-xs text-eventBlue/70 -mt-1 italic">by VORTEX</span>
+          </div>
         </div>
 
         {userType && (
           <nav className="hidden md:flex items-center gap-8">
-            <Link to={`/${userType}/events`} className="font-medium text-foreground/80 hover:text-eventPurple transition-colors">
+            <Link to={`/${userType}/events`} className="font-medium text-foreground/80 hover:text-eventNavy transition-colors">
               Events
             </Link>
-            <Link to={`/${userType}/calendar`} className="font-medium text-foreground/80 hover:text-eventPurple transition-colors">
+            <Link to={`/${userType}/calendar`} className="font-medium text-foreground/80 hover:text-eventNavy transition-colors">
               Calendar
             </Link>
             {userType === 'organizer' && (
-              <Link to="/organizer/dashboard" className="font-medium text-foreground/80 hover:text-eventPurple transition-colors">
+              <Link to="/organizer/dashboard" className="font-medium text-foreground/80 hover:text-eventNavy transition-colors">
                 Dashboard
               </Link>
             )}
             {userType === 'student' && (
-              <Link to="/student/epasses" className="font-medium text-foreground/80 hover:text-eventPurple transition-colors">
+              <Link to="/student/epasses" className="font-medium text-foreground/80 hover:text-eventNavy transition-colors">
                 My E-Passes
               </Link>
             )}
@@ -60,17 +65,17 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
 
         {userType ? (
           <div className="flex items-center gap-3">
-            <Link to={`/${userType}/notifications`} className="w-9 h-9 rounded-full flex items-center justify-center text-foreground/70 hover:bg-muted transition-colors">
-              <Bell size={20} />
+            <Link to={`/${userType}/notifications`} className="w-9 h-9 rounded-full flex items-center justify-center text-foreground/70 hover:bg-muted hover:text-eventNavy transition-all duration-300">
+              <Bell size={20} className="hover:animate-bounce-gentle" />
             </Link>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="w-9 h-9 rounded-full flex items-center justify-center bg-eventPurple/10 text-eventPurple hover:bg-eventPurple/20 transition-colors">
+                <button className="w-9 h-9 rounded-full flex items-center justify-center bg-eventNavy/10 text-eventNavy hover:bg-eventNavy/20 transition-all duration-300">
                   <User size={18} />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="animate-scale-in">
                 <DropdownMenuItem>
                   <Link to={`/${userType}/profile`} className="flex items-center gap-2 w-full">
                     <User size={14} />
