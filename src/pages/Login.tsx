@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -31,6 +32,27 @@ const Login = () => {
   
   const userType = type === 'student' || type === 'organizer' ? type : 'student';
   
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // User is already logged in, redirect based on their type
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('type')
+          .eq('id', data.session.user.id)
+          .single();
+          
+        if (profileData) {
+          navigate(`/${profileData.type}/profile`);
+        }
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -43,35 +65,52 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // For demo purposes, we'll use a very simple check
-      // In a real app, this would validate against a backend
-      
-      // Create a minimal user object if one doesn't exist
-      const userData = {
-        id: Date.now().toString(),
-        name: "Demo User",
+      // Attempt to sign in with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
-        type: userType,
-        interests: [],
-        badges: [], // Empty badges array
-        eventsAttended: [],
-        eventsOrganized: [],
-      };
-      
-      // Store the user in localStorage
-      localStorage.setItem('currentUser', JSON.stringify(userData));
-      
-      toast({
-        title: "Login successful!",
-        description: `Welcome to EventHub.`,
+        password: values.password,
       });
       
-      // Redirect based on user type
-      navigate(`/${userType}/profile`);
-    } catch (error) {
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data.user) {
+        // Get the user's profile type
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('type, name')
+          .eq('id', data.user.id)
+          .single();
+          
+        if (profileError) {
+          throw new Error('Error fetching user profile');
+        }
+        
+        // If no profile type or wrong type, update it
+        if (!profileData.type || profileData.type !== userType) {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ type: userType })
+            .eq('id', data.user.id);
+            
+          if (updateError) {
+            console.error('Failed to update user type:', updateError);
+          }
+        }
+        
+        toast({
+          title: "Login successful!",
+          description: `Welcome to EventHub, ${profileData.name || 'User'}.`,
+        });
+        
+        // Redirect based on user type
+        navigate(`/${userType}/profile`);
+      }
+    } catch (error: any) {
       toast({
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: error.message || "Please check your credentials and try again.",
         variant: "destructive",
       });
     } finally {

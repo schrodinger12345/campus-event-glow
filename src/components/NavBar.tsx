@@ -1,13 +1,15 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Calendar, Settings, User } from 'lucide-react';
+import { Bell, Calendar, Settings, User, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 type NavBarProps = {
   userType?: 'student' | 'organizer' | null;
@@ -15,6 +17,41 @@ type NavBarProps = {
 
 const NavBar: React.FC<NavBarProps> = ({ userType }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [userName, setUserName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!userType) return;
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('name, profile_picture')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching user data:', error);
+            return;
+          }
+          
+          if (data) {
+            setUserName(data.name);
+            setAvatarUrl(data.profile_picture);
+          }
+        }
+      } catch (error) {
+        console.error('Error in fetching user data:', error);
+      }
+    };
+    
+    fetchUserData();
+  }, [userType]);
   
   const handleLogoClick = () => {
     if (userType === 'student') {
@@ -23,6 +60,27 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
       navigate('/organizer/events');
     } else {
       navigate('/');
+    }
+  };
+  
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully",
+      });
+      
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message || "There was a problem signing out",
+        variant: "destructive",
+      });
     }
   };
   
@@ -71,11 +129,24 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="w-9 h-9 rounded-full flex items-center justify-center bg-eventNavy/10 text-eventNavy hover:bg-eventNavy/20 transition-all duration-300">
-                  <User size={18} />
+                <button className="w-9 h-9 rounded-full flex items-center justify-center bg-eventNavy/10 text-eventNavy hover:bg-eventNavy/20 transition-all duration-300 overflow-hidden">
+                  {avatarUrl ? (
+                    <img 
+                      src={avatarUrl} 
+                      alt={userName || 'User'} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User size={18} />
+                  )}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="animate-scale-in">
+                {userName && (
+                  <div className="px-2 py-1.5 text-sm font-medium border-b mb-1">
+                    {userName}
+                  </div>
+                )}
                 <DropdownMenuItem>
                   <Link to={`/${userType}/profile`} className="flex items-center gap-2 w-full">
                     <User size={14} />
@@ -94,10 +165,11 @@ const NavBar: React.FC<NavBarProps> = ({ userType }) => {
                     Settings
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link to="/" className="flex items-center gap-2 w-full text-destructive">
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <span className="flex items-center gap-2 w-full text-destructive">
+                    <LogOut size={14} />
                     Log out
-                  </Link>
+                  </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

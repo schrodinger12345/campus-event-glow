@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -37,6 +38,28 @@ const Signup = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // Get the user's profile type
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('type')
+          .eq('id', data.session.user.id)
+          .single();
+          
+        if (profileData) {
+          // Redirect based on user type
+          navigate(`/${profileData.type}/profile`);
+        }
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -53,32 +76,52 @@ const Signup = () => {
     setIsLoading(true);
     
     try {
-      // Store user data in localStorage for persistence
-      const userData = {
-        id: Date.now().toString(),
-        name: values.name,
+      // Parse interests into array
+      const interestsArray = values.interests 
+        ? values.interests.split(',').map(i => i.trim()) 
+        : [];
+      
+      // Register the user with Supabase
+      const { data, error } = await supabase.auth.signUp({
         email: values.email,
-        type: values.userType,
-        interests: values.interests ? values.interests.split(',').map(i => i.trim()) : [],
-        badges: [], // Start with empty badges
-        eventsAttended: [],
-        eventsOrganized: [],
-      };
-      
-      // Save to localStorage for demo persistence
-      localStorage.setItem('currentUser', JSON.stringify(userData));
-      
-      toast({
-        title: "Account created!",
-        description: "Welcome to EventHub. You're now logged in.",
+        password: values.password,
+        options: {
+          data: {
+            name: values.name,
+            type: values.userType,
+          }
+        }
       });
       
-      // Redirect based on user type
-      navigate(`/${values.userType}/profile`);
-    } catch (error) {
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data.user) {
+        // Update the user's profile with additional information
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            interests: interestsArray
+          })
+          .eq('id', data.user.id);
+          
+        if (profileError) {
+          console.error('Error updating profile:', profileError);
+        }
+        
+        toast({
+          title: "Account created!",
+          description: "Welcome to EventHub. You're now registered.",
+        });
+        
+        // Redirect based on user type
+        navigate(`/${values.userType}/profile`);
+      }
+    } catch (error: any) {
       toast({
         title: "Signup failed",
-        description: "There was a problem creating your account. Please try again.",
+        description: error.message || "There was a problem creating your account. Please try again.",
         variant: "destructive",
       });
     } finally {

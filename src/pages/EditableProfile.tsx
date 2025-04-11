@@ -1,87 +1,382 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Bookmark, CheckCircle, Calendar, MapPin, X, Plus, Save, Edit, Trash2 } from 'lucide-react';
+import { Trophy, Bookmark, CheckCircle, Calendar, MapPin, X, Plus, Save, Edit, Trash2, User, Camera } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import NavBar from '@/components/NavBar';
-import { User, Event } from '@/types';
-import { events } from '@/data/mockData';
+import { User as UserType, Event } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 const EditableProfile = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserType | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [newInterest, setNewInterest] = useState('');
   const [attendedEvents, setAttendedEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [badges, setBadges] = useState<string[]>([]);
+  const [userProfile, setUserProfile] = useState({
+    name: '',
+    bio: '',
+    department: '',
+    year: '',
+    profilePicture: ''
+  });
+  const [uploading, setUploading] = useState(false);
   
   useEffect(() => {
-    // Get user from localStorage
-    const userJson = localStorage.getItem('currentUser');
-    if (!userJson) {
+    const fetchUserProfile = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get the current authenticated user
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          toast({
+            title: "Not logged in",
+            description: "Please log in to view your profile",
+            variant: "destructive",
+          });
+          navigate('/login');
+          return;
+        }
+        
+        const userId = session.user.id;
+        
+        // Get user profile from Supabase
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+          
+        if (profileError) {
+          throw new Error(profileError.message);
+        }
+        
+        if (!profileData) {
+          throw new Error('Profile not found');
+        }
+        
+        // Get attended events
+        const { data: attendedData, error: attendedError } = await supabase
+          .from('attended_events')
+          .select('event_id')
+          .eq('user_id', userId);
+          
+        if (attendedError) {
+          console.error('Error fetching attended events:', attendedError);
+        }
+        
+        // Get user badges
+        const { data: badgesData, error: badgesError } = await supabase
+          .from('user_badges')
+          .select('badge_name')
+          .eq('user_id', userId);
+          
+        if (badgesError) {
+          console.error('Error fetching badges:', badgesError);
+        }
+        
+        // Get events data for attended events
+        let eventsArray: Event[] = [];
+        if (attendedData && attendedData.length > 0) {
+          const eventIds = attendedData.map(item => item.event_id);
+          
+          const { data: eventsData, error: eventsError } = await supabase
+            .from('events')
+            .select('*')
+            .in('id', eventIds);
+            
+          if (eventsError) {
+            console.error('Error fetching events:', eventsError);
+          } else if (eventsData) {
+            eventsArray = eventsData.map(event => ({
+              id: event.id,
+              title: event.title,
+              description: event.description,
+              longDescription: event.long_description,
+              category: event.category,
+              date: event.date,
+              time: event.time,
+              location: event.location,
+              attendees: event.attendees,
+              maxAttendees: event.max_attendees,
+              image: event.image,
+              organizerId: event.organizer_id,
+              organizerName: event.organizer_name,
+              createdAt: event.created_at
+            }));
+          }
+        }
+        
+        // Create user object from profileData
+        const userObj: UserType = {
+          id: profileData.id,
+          name: profileData.name || '',
+          email: session.user.email || '',
+          type: profileData.type as 'student' | 'organizer',
+          profilePicture: profileData.profile_picture,
+          bio: profileData.bio,
+          department: profileData.department,
+          year: profileData.year,
+          interests: profileData.interests || [],
+          badges: badgesData ? badgesData.map(b => b.badge_name) : [],
+          eventsAttended: attendedData ? attendedData.map(a => a.event_id) : []
+        };
+        
+        setUser(userObj);
+        setUserProfile({
+          name: userObj.name || '',
+          bio: userObj.bio || '',
+          department: userObj.department || '',
+          year: userObj.year ? String(userObj.year) : '',
+          profilePicture: userObj.profilePicture || ''
+        });
+        setAttendedEvents(eventsArray);
+        setBadges(userObj.badges || []);
+        
+      } catch (error: any) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: "Error loading profile",
+          description: error.message || "There was a problem loading your profile",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [navigate, toast]);
+  
+  const addInterest = async () => {
+    if (!newInterest.trim() || !user) return;
+    
+    try {
+      const updatedInterests = [...(user.interests || []), newInterest.trim()];
+      
+      // Update in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({ interests: updatedInterests })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setUser({
+        ...user,
+        interests: updatedInterests
+      });
+      
+      setNewInterest('');
+      
       toast({
-        title: "Not logged in",
-        description: "Please log in to view your profile",
+        title: "Interest added",
+        description: `"${newInterest.trim()}" has been added to your interests`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error adding interest",
+        description: error.message || "There was a problem adding your interest",
         variant: "destructive",
       });
-      navigate('/login');
+    }
+  };
+  
+  const removeInterest = async (interest: string) => {
+    if (!user || !user.interests) return;
+    
+    try {
+      const updatedInterests = user.interests.filter(i => i !== interest);
+      
+      // Update in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({ interests: updatedInterests })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setUser({
+        ...user,
+        interests: updatedInterests
+      });
+      
+      toast({
+        title: "Interest removed",
+        description: `"${interest}" has been removed from your interests`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error removing interest",
+        description: error.message || "There was a problem removing your interest",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !user) {
       return;
     }
     
-    const userData = JSON.parse(userJson);
-    setUser(userData);
-    
-    // Get attended events
-    if (userData.eventsAttended && userData.eventsAttended.length > 0) {
-      const userEvents = events.filter(event => userData.eventsAttended.includes(event.id));
-      setAttendedEvents(userEvents);
-    }
-  }, [navigate, toast]);
-  
-  const addInterest = () => {
-    if (!newInterest.trim()) return;
-    
-    if (user) {
-      const updatedInterests = [...(user.interests || []), newInterest.trim()];
+    try {
+      setUploading(true);
+      
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/profile.${fileExt}`;
+      
+      // Upload the file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('profile_pictures')
+        .upload(filePath, file, { upsert: true });
+        
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('profile_pictures')
+        .getPublicUrl(filePath);
+        
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error('Failed to get public URL for uploaded image');
+      }
+      
+      // Update the profile with the new profile picture URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ profile_picture: urlData.publicUrl })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
+      
+      // Update local state
       setUser({
         ...user,
-        interests: updatedInterests
+        profilePicture: urlData.publicUrl
       });
-      setNewInterest('');
+      
+      setUserProfile({
+        ...userProfile,
+        profilePicture: urlData.publicUrl
+      });
+      
+      toast({
+        title: "Profile picture updated",
+        description: "Your profile picture has been updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error updating profile picture",
+        description: error.message || "There was a problem updating your profile picture",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
     }
   };
   
-  const removeInterest = (interest: string) => {
-    if (user && user.interests) {
-      const updatedInterests = user.interests.filter(i => i !== interest);
+  const saveChanges = async () => {
+    if (!user) return;
+    
+    try {
+      // Update profile in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: userProfile.name,
+          bio: userProfile.bio,
+          department: userProfile.department,
+          year: userProfile.year ? parseInt(userProfile.year) : null,
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      // Update local state
       setUser({
         ...user,
-        interests: updatedInterests
+        name: userProfile.name,
+        bio: userProfile.bio,
+        department: userProfile.department,
+        year: userProfile.year ? parseInt(userProfile.year) : undefined,
       });
-    }
-  };
-  
-  const saveChanges = () => {
-    if (user) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      
       setEditMode(false);
+      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
       });
+    } catch (error: any) {
+      toast({
+        title: "Error updating profile",
+        description: error.message || "There was a problem updating your profile",
+        variant: "destructive",
+      });
     }
   };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setUserProfile(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully",
+      });
+      
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message || "There was a problem signing out",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-white to-softPurple/20">
+        <NavBar userType={user?.type} />
+        <div className="container mx-auto px-4 py-10 flex items-center justify-center">
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
   
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-white to-softPurple/20">
-        <NavBar userType="student" />
+        <NavBar userType={null} />
         <div className="container mx-auto px-4 py-10 flex items-center justify-center">
-          <p>Loading profile...</p>
+          <div className="glass-card p-8 text-center">
+            <p className="mb-4">You need to be logged in to view this page.</p>
+            <Button onClick={() => navigate('/login')}>Log in</Button>
+          </div>
         </div>
       </div>
     );
@@ -104,15 +399,96 @@ const EditableProfile = () => {
                     className="w-full h-full object-cover"
                   />
                 </div>
+                <label 
+                  htmlFor="profile-picture" 
+                  className="absolute bottom-0 right-0 w-8 h-8 bg-eventPurple text-white rounded-full flex items-center justify-center cursor-pointer shadow-md"
+                >
+                  <Camera size={14} />
+                  <input 
+                    type="file"
+                    id="profile-picture"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProfilePictureChange}
+                    disabled={uploading}
+                  />
+                </label>
               </div>
               
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold mb-2">{user.name}</h1>
-                <p className="text-muted-foreground mb-3">
-                  {user.department ? `${user.department}, ` : ''}
-                  {user.year ? `Year ${user.year}` : ''}
-                </p>
-                <p className="text-sm mb-4">{user.bio || 'No bio provided'}</p>
+              {editMode ? (
+                <div className="flex-1 space-y-4">
+                  <Input
+                    name="name"
+                    value={userProfile.name}
+                    onChange={handleInputChange}
+                    placeholder="Your name"
+                    className="font-bold text-lg"
+                  />
+                  <div className="flex gap-4">
+                    <Input
+                      name="department"
+                      value={userProfile.department}
+                      onChange={handleInputChange}
+                      placeholder="Department"
+                      className="text-sm"
+                    />
+                    <Input
+                      name="year"
+                      value={userProfile.year}
+                      onChange={handleInputChange}
+                      placeholder="Year"
+                      type="number"
+                      className="text-sm w-24"
+                      min={1}
+                      max={6}
+                    />
+                  </div>
+                  <Textarea
+                    name="bio"
+                    value={userProfile.bio}
+                    onChange={handleInputChange}
+                    placeholder="Write a short bio..."
+                    className="text-sm"
+                  />
+                </div>
+              ) : (
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold mb-2">{user.name}</h1>
+                  <p className="text-muted-foreground mb-3">
+                    {user.department ? `${user.department}, ` : ''}
+                    {user.year ? `Year ${user.year}` : ''}
+                  </p>
+                  <p className="text-sm mb-4">{user.bio || 'No bio provided'}</p>
+                </div>
+              )}
+              
+              <div className="flex flex-col gap-2">
+                {editMode ? (
+                  <Button 
+                    variant="default" 
+                    onClick={saveChanges}
+                    className="flex items-center"
+                  >
+                    <Save size={16} className="mr-2" />
+                    Save
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setEditMode(true)}
+                    className="flex items-center"
+                  >
+                    <Edit size={16} className="mr-2" />
+                    Edit Profile
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  onClick={handleSignOut}
+                  className="text-destructive hover:text-destructive/90"
+                >
+                  Sign Out
+                </Button>
               </div>
               
               <div className="bg-white/70 p-4 rounded-lg border border-border shadow-sm">
@@ -219,9 +595,9 @@ const EditableProfile = () => {
             </h2>
             
             <div className="glass-card p-6">
-              {user.badges && user.badges.length > 0 ? (
+              {badges.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {user.badges.map((badge, index) => (
+                  {badges.map((badge, index) => (
                     <div 
                       key={badge} 
                       className="glass-card p-4 flex items-center gap-3 animate-scale-in"
