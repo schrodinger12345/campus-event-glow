@@ -7,3 +7,50 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 // Configure the client with minimal settings since we're not using auth
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Custom types for user credentials
+export type UserCredential = {
+  id: string;
+  email: string;
+  password: string;
+  created_at?: string;
+};
+
+// Custom query functions to handle user_credentials table
+export const getUserCredentialByEmail = async (email: string): Promise<UserCredential | null> => {
+  const { data, error } = await supabase
+    .from('user_credentials')
+    .select('*')
+    .eq('email', email)
+    .single();
+  
+  if (error || !data) {
+    console.error('Error fetching user credential:', error);
+    return null;
+  }
+  
+  return data as unknown as UserCredential;
+};
+
+export const createUserCredential = async (
+  id: string,
+  email: string, 
+  password: string
+): Promise<UserCredential | null> => {
+  const { data, error } = await supabase
+    .from('user_credentials')
+    .insert({
+      id,
+      email,
+      password,
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('Error creating user credential:', error);
+    return null;
+  }
+  
+  return data as unknown as UserCredential;
+};

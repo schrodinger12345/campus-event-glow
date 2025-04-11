@@ -15,10 +15,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createUserCredential } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -61,17 +61,15 @@ const Signup = () => {
       // Create a new UUID for the user
       const userId = crypto.randomUUID();
       
-      // Insert the user credentials directly into the database
-      const { error: credentialsError } = await supabase
-        .from('user_credentials')
-        .insert({
-          id: userId,
-          email: values.email,
-          password: values.password, // Note: In a real app, this should be hashed
-        });
+      // Insert the user credentials using the custom function
+      const credentialResult = await createUserCredential(
+        userId,
+        values.email,
+        values.password
+      );
         
-      if (credentialsError) {
-        throw new Error(credentialsError.message);
+      if (!credentialResult) {
+        throw new Error('Error creating user credentials');
       }
       
       // Insert the user profile information

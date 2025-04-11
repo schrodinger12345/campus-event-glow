@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,8 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { supabase, getUserCredentialByEmail } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -44,14 +43,10 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Query the database for the user credentials
-      const { data: userData, error: userError } = await supabase
-        .from('user_credentials')
-        .select('id, password')
-        .eq('email', values.email)
-        .single();
+      // Query the database for the user credentials using the custom function
+      const userData = await getUserCredentialByEmail(values.email);
       
-      if (userError || !userData) {
+      if (!userData) {
         throw new Error('Invalid email or password');
       }
       
