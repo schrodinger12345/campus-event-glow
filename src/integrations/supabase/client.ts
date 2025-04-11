@@ -18,18 +18,24 @@ export type UserCredential = {
 
 // Custom query functions to handle user_credentials table
 export const getUserCredentialByEmail = async (email: string): Promise<UserCredential | null> => {
-  const { data, error } = await supabase
-    .from('user_credentials')
-    .select('*')
-    .eq('email', email)
-    .single();
-  
-  if (error || !data) {
-    console.error('Error fetching user credential:', error);
+  try {
+    // Using rpc to access user_credentials table as a workaround for TypeScript type issues
+    const { data, error } = await supabase.rpc('get_user_credential_by_email', { email_param: email });
+    
+    if (error) {
+      console.error('Error fetching user credential:', error);
+      return null;
+    }
+    
+    if (!data || data.length === 0) {
+      return null;
+    }
+    
+    return data as unknown as UserCredential;
+  } catch (error) {
+    console.error('Exception fetching user credential:', error);
     return null;
   }
-  
-  return data as unknown as UserCredential;
 };
 
 export const createUserCredential = async (
@@ -37,20 +43,32 @@ export const createUserCredential = async (
   email: string, 
   password: string
 ): Promise<UserCredential | null> => {
-  const { data, error } = await supabase
-    .from('user_credentials')
-    .insert({
-      id,
-      email,
-      password,
-    })
-    .select()
-    .single();
-  
-  if (error) {
-    console.error('Error creating user credential:', error);
-    return null;
+  try {
+    // Direct insert using REST - TypeScript types are not properly generated for user_credentials
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/user_credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+      },
+      body: JSON.stringify({
+        id,
+        email,
+        password,
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error creating user credential:', errorData);
+      throw new Error(`Error creating user credential: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    return data as UserCredential;
+  } catch (error) {
+    console.error('Exception creating user credential:', error);
+    throw error;
   }
-  
-  return data as unknown as UserCredential;
 };

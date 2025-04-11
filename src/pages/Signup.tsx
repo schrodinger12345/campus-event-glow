@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,7 +68,7 @@ const Signup = () => {
         values.email,
         values.password
       );
-        
+      
       if (!credentialResult) {
         throw new Error('Error creating user credentials');
       }
@@ -83,20 +84,30 @@ const Signup = () => {
         });
           
       if (profileError) {
-        throw new Error('Error creating profile: ' + profileError.message);
+        console.error('Profile creation error:', profileError);
+        throw new Error(`Error creating profile: ${profileError.message}`);
       }
         
       toast({
-        title: "Account created!",
-        description: "Welcome to EventHub. You're now registered.",
+        title: "Account created successfully!",
+        description: "Welcome to EventHub. You can now log in with your credentials.",
       });
         
       // Redirect to login
-      navigate('/login');
+      navigate(`/login/${values.userType}`);
     } catch (error: any) {
+      console.error("Signup error:", error);
+      
+      // More specific error message
+      let errorMessage = "There was a problem creating your account. Please try again.";
+      
+      if (error.message.includes("duplicate key")) {
+        errorMessage = "An account with this email already exists. Please use a different email or log in.";
+      }
+      
       toast({
         title: "Signup failed",
-        description: error.message || "There was a problem creating your account. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
